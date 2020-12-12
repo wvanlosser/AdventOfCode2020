@@ -11,7 +11,8 @@ namespace AdventOfCode2020.Day12
         private Dictionary<char, InstructionType> _instructionTypeMapping;
 
         private Tuple<int, int> _startingPosition;
-        private Tuple<int, int> _currentPosition;
+        private Tuple<int, int> _currentBoatPosition;
+        private Tuple<int, int> _waypointPosition;
         private Direction _currentDirection;
 
         public Day12() : base(12, "Rain Risk")
@@ -49,84 +50,151 @@ namespace AdventOfCode2020.Day12
                 .ToArray());
         }
 
+        // Correct Answer: 439
         protected override void SolvePartOne()
         {
             _startingPosition = new Tuple<int, int>(0, 0);
-            _currentPosition = new Tuple<int, int>(0, 0);
+            _currentBoatPosition = new Tuple<int, int>(0, 0);
             _currentDirection = Direction.East;
 
-            RunSimulation();
+            RunBoatSimulation();
+
+            Console.WriteLine($"Answer: {Math.Abs(_currentBoatPosition.Item1) + Math.Abs(_currentBoatPosition.Item2)}");
         }
 
+        // Correct Answer: 12385
         protected override void SolvePartTwo()
         {
-            throw new System.NotImplementedException();
+            _startingPosition = new Tuple<int, int>(0, 0);
+            _currentBoatPosition = new Tuple<int, int>(0, 0);
+            _waypointPosition = new Tuple<int, int>(10, 1);
+            _currentDirection = Direction.East;
+
+            RunBoatWaypointSimulation();
+
+            Console.WriteLine($"Answer: {Math.Abs(_currentBoatPosition.Item1) + Math.Abs(_currentBoatPosition.Item2)}");
         }
 
+        private void PrintPosition(Tuple<int, int> position)
+        {
+            var xDir = position.Item1 >= 0 ? "east" : "west";
+            var xVal = Math.Abs(position.Item1);
+            var yDir = position.Item2 >= 0 ? "north" : "south";
+            var yVal = Math.Abs(position.Item2);
 
-        private void RunSimulation()
+            Console.WriteLine($"Position: {xDir} {xVal}, {yDir} {yVal}");
+        }
+        private void RunBoatSimulation()
         {
             foreach (var instruction in _instructions)
             {
                 switch (instruction.Type)
                 {
                     case InstructionType.North:
+                    case InstructionType.Forward when _currentDirection == Direction.North:
+                        _currentBoatPosition = MoveNorthSouth(_currentBoatPosition, instruction.Value);
+                        break;
                     case InstructionType.South:
-                        MoveNorthSouth(instruction.Value);
+                    case InstructionType.Forward when _currentDirection == Direction.South:
+                        _currentBoatPosition = MoveNorthSouth(_currentBoatPosition, instruction.Value * -1);
                         break;
                     case InstructionType.East:
+                    case InstructionType.Forward when _currentDirection == Direction.East:
+                        _currentBoatPosition = MoveEastWest(_currentBoatPosition, instruction.Value);
+                        break;
                     case InstructionType.West:
-                        MoveEastWest(instruction.Value);
+                    case InstructionType.Forward when _currentDirection == Direction.West:
+                        _currentBoatPosition = MoveEastWest(_currentBoatPosition, instruction.Value * -1);
                         break;
                     case InstructionType.Left:
-                        TurnBoatLeft(instruction.Value);
+                        TurnBoat(instruction.Value * 1);
                         break;
                     case InstructionType.Right:
-                        TurnBoatRight(instruction.Value);
-                        break;
-                    case InstructionType.Forward:
-                        switch (_currentDirection)
-                        {
-                            case Direction.North:
-                            case Direction.South:
-                                MoveNorthSouth(instruction.Value);
-                                break;
-                            case Direction.East:
-                            case Direction.West:
-                                MoveEastWest(instruction.Value);
-                                break;
-                        }
+                        TurnBoat(instruction.Value);
                         break;
                     default:
                         break;
                 }
+
+                Console.Write($"Current Direction: {_currentDirection}; ");
+                PrintPosition(_currentBoatPosition);
             }
         }
-
-        private void MoveNorthSouth(int units)
+        private void RunBoatWaypointSimulation()
         {
-            _currentPosition = new Tuple<int, int>(_currentPosition.Item1, _currentPosition.Item2 + units);
+            foreach (var instruction in _instructions)
+            {
+                switch (instruction.Type)
+                {
+                    case InstructionType.North:
+                        _waypointPosition = MoveNorthSouth(_waypointPosition, instruction.Value);
+                        break;
+                    case InstructionType.South:
+                        _waypointPosition = MoveNorthSouth(_waypointPosition, instruction.Value * -1);
+                        break;
+                    case InstructionType.East:
+                        _waypointPosition = MoveEastWest(_waypointPosition, instruction.Value);
+                        break;
+                    case InstructionType.West:
+                        _waypointPosition = MoveEastWest(_waypointPosition, instruction.Value * -1);
+                        break;
+                    case InstructionType.Left:
+                        TurnWaypointLeft(instruction.Value);
+                        break;
+                    case InstructionType.Right:
+                        TurnWaypointRight(instruction.Value);
+                        break;
+                    case InstructionType.Forward:
+                        _currentBoatPosition = MoveBoatToWaypoint(instruction.Value);
+                        break;
+                    default:
+                        break;
+                }
+
+                Console.Write($"Waypoint ");
+                PrintPosition(_waypointPosition);
+                Console.Write($"Boat ");
+                PrintPosition(_currentBoatPosition);
+            }
         }
-
-        private void MoveEastWest(int units)
+        private Tuple<int, int> MoveNorthSouth(Tuple<int, int> position, int units)
         {
-            _currentPosition = new Tuple<int, int>(_currentPosition.Item1 + units, _currentPosition.Item2);
+            return new Tuple<int, int>(position.Item1, position.Item2 + units);
         }
-
-        private void TurnBoatLeft(int degrees)
+        private Tuple<int, int> MoveEastWest(Tuple<int, int> position, int units)
         {
-            var clicks = degrees / 90;
-            var newDirection = (((int)_currentDirection) - clicks) % 3;
+            return new Tuple<int, int>(position.Item1 + units, position.Item2);
+        }
+        private void TurnBoat(int degrees)
+        {
+            var newDirection = (int)_currentDirection + degrees;
+            while (newDirection < 0) newDirection += 360;
+            while (newDirection >= 360) newDirection -= 360;
 
             _currentDirection = (Direction)newDirection;
         }
-
-        private void TurnBoatRight(int degrees)
+        private void TurnWaypointLeft(int degrees)
         {
-            var clicks = degrees / 90;
-            var newDirection = (((int)_currentDirection) + clicks) % 3;
+            var nrOfTurns = degrees / 90;
 
-            _currentDirection = (Direction)newDirection;
+            for (int i = 0; i < nrOfTurns; i++)
+            {
+                _waypointPosition = new Tuple<int, int>(_waypointPosition.Item2 * -1, _waypointPosition.Item1);
+            }
+        }
+        private void TurnWaypointRight(int degrees)
+        {
+            var nrOfTurns = degrees / 90;
+
+            for (int i = 0; i < nrOfTurns; i++)
+            {
+                _waypointPosition = new Tuple<int, int>(_waypointPosition.Item2, _waypointPosition.Item1 * -1);
+            }
+        }
+        private Tuple<int, int> MoveBoatToWaypoint(int nrOfTimes)
+        {
+            return new Tuple<int, int>(_currentBoatPosition.Item1 + (nrOfTimes * _waypointPosition.Item1), 
+                                       _currentBoatPosition.Item2 + (nrOfTimes * _waypointPosition.Item2));
         }
     }
 
@@ -148,9 +216,9 @@ namespace AdventOfCode2020.Day12
     }
     internal enum Direction
     {
-        North,
-        South,
-        East,
-        West
+        North = 0,
+        East  = 90,
+        South = 180,
+        West  = 270
     }
 }
