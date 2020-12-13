@@ -61,62 +61,35 @@ namespace AdventOfCode2020.Day13
             Console.WriteLine($"Answer: {diffMinutes * earliestBus}");
         }
 
+        // Correct Answer: 906332393333683
+        // Used help from Reddit
         protected override void SolvePartTwo()
         {
-            var matchingBusses = FindMatchingBusses();
-            if (matchingBusses == null) throw new Exception("No matching busses found!");
+            long earliestTime = 0;
+            long inc = _busses[0];
 
-            var bus = matchingBusses.Item1;
-            var busOffset = _busses.IndexOf(bus);
+            for (int i = 1; i < _busses.Count; i++)
+            {
+                var nextBus = _busses[i];
+                var nextBusOffset = _busOffsets[nextBus];
 
-            var busTest = matchingBusses.Item2;
-            var busTestOffset = _busses.IndexOf(busTest);
+                while(true)
+                {
+                    earliestTime += inc;
+                    if ((earliestTime + nextBusOffset) % nextBus == 0)
+                    {
+                        inc *= nextBus;
+                        break;
+                    }
+                }
+            }
 
-            Console.WriteLine("TODO");
+            Console.WriteLine($"Answer: {earliestTime}");
         }
 
         private bool DoesBusDepart(long time, long bus)
         {
             return time % bus == 0;
-        }
-
-        private Tuple<int, int> FindMatchingBusses()
-        {
-            for (int i = 0; i < _busses.Count-1; i++)
-            {
-                var bus = _busses[i];
-                for (int j = i+1; j < _busses.Count; j++)
-                {
-                    var busTest = _busses[j];
-                    if (_busOffsets[busTest] == bus) return new Tuple<int, int>(bus, busTest);
-                }
-
-            }
-
-            return null;
-        }
-
-        private long FindLCM(int bus1, int bus2, long offset = 0)
-        {
-            var bus = bus1 > bus2 ? bus1 : bus2;
-            var busTest = bus1 > bus2 ? bus2 : bus1;
-
-            if (bus % busTest == 0) return busTest;
-
-            var multiplier = offset / bus;
-            var done = false;
-            long lcm = 0;
-
-            while(!done)
-            {
-                multiplier++;
-                long testLCM = bus * multiplier;
-
-                done = testLCM % busTest == 0;
-                if (done) lcm = testLCM;
-            }
-
-            return lcm;
         }
     }
 }

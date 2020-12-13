@@ -44,6 +44,7 @@ namespace AdventOfCode2020.Day10
         }
 
         // Correct Answer: 21156911906816
+        // Used help from Reddit
         protected override void SolvePartTwo()
         {
             var paths = new long[_adapters.Count];
